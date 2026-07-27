@@ -6,8 +6,11 @@ class AccountService:
         self.account_repository = account_repository
 
     def create_account(self, user_id, account_type):
-        account_type = account_type.upper()
 
+        # Check if account type is valid
+
+        account_type = account_type.upper()
+        
         if account_type not in ["CHECKING", "SAVINGS"]:
             raise ValueError("Account type must be CHECKING or SAVINGS")
 
@@ -16,6 +19,9 @@ class AccountService:
         return self.account_repository.save(account)
 
     def get_account(self, account_id):
+
+        ## get account by id from repository
+
         account = self.account_repository.get_by_id(account_id)
 
         if account is None:

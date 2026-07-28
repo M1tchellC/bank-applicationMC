@@ -1,14 +1,18 @@
 from repositories.AccountRepository import AccountRepository
 from services.account_service import AccountService
-
+from repositories.UserRepository import UserRepository
 
 ## create an instance of the account repository class
 
-repo = AccountRepository()
+account_repo = AccountRepository()
+
+## create an instance of the user repository class
+
+user_repo = UserRepository()
 
 ## create the account service and give it access to the repository
 
-service = AccountService(account_repository=repo)
+service = AccountService(account_repository=account_repo)
 
 
 ## display the temporary hard-coded accounts

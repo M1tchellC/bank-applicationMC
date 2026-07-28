@@ -49,12 +49,16 @@ class TransactionService:
         saved_transaction = self.transaction_repository.save(transaction)
 
         return {
-            "account_id": account.account_id,
-            "previous_balance": float(current_balance),
-            "updated_balance": float(updated_balance),
-            "transaction_id": saved_transaction.transaction_id,
-            "transaction_type": saved_transaction.transaction_type,
-            "amount": saved_transaction.amount,
+            "accountId": account.account_id,
+            "previousBalance": float(current_balance),
+            "balance": float(updated_balance),
+            "transaction": {
+                "transactionId": saved_transaction.transaction_id,
+                "accountId": saved_transaction.account_id,
+                "type": saved_transaction.transaction_type,
+                "amount": saved_transaction.amount,
+                "date": saved_transaction.created_at,
+            },
         }
 
     def withdraw(self, account_id: int, amount: Any):
@@ -81,12 +85,16 @@ class TransactionService:
         saved_transaction = self.transaction_repository.save(transaction)
 
         return {
-            "account_id": account.account_id,
-            "previous_balance": float(current_balance),
-            "updated_balance": float(updated_balance),
-            "transaction_id": saved_transaction.transaction_id,
-            "transaction_type": saved_transaction.transaction_type,
-            "amount": saved_transaction.amount,
+            "accountId": account.account_id,
+            "previousBalance": float(current_balance),
+            "balance": float(updated_balance),
+            "transaction": {
+                "transactionId": saved_transaction.transaction_id,
+                "accountId": saved_transaction.account_id,
+                "type": saved_transaction.transaction_type,
+                "amount": saved_transaction.amount,
+                "date": saved_transaction.created_at,
+            },
         }
 
     def get_transactions(self, account_id: int):
@@ -97,4 +105,14 @@ class TransactionService:
         if account is None:
             raise ValueError("Account not found")
 
-        return self.transaction_repository.get_by_account_id(validated_account_id)
+        transactions = self.transaction_repository.get_by_account_id(validated_account_id)
+        return [
+            {
+                "transactionId": txn.transaction_id,
+                "accountId": txn.account_id,
+                "type": txn.transaction_type,
+                "amount": txn.amount,
+                "date": txn.created_at,
+            }
+            for txn in transactions
+        ]

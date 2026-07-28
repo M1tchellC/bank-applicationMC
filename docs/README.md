@@ -85,9 +85,9 @@ uvicorn BankAPI:app --reload
 
 ### Transactions
 
-- `GET /transactions` - Get all transactions
-- `GET /transactions/{txn_id}` - Get transaction by ID
-- `POST /transactions` - Create transaction entry
+- `POST /accounts/{account_id}/deposit` - Deposit money
+- `POST /accounts/{account_id}/withdraw` - Withdraw money
+- `GET /accounts/{account_id}/transactions` - Get transaction history for one account
 
 ## Example Request Payloads
 
@@ -100,20 +100,18 @@ uvicorn BankAPI:app --reload
 }
 ```
 
-### Deposit (service-level method)
+### Deposit API Request
 
 ```json
 {
-	"account_id": 1,
 	"amount": 250.0
 }
 ```
 
-### Withdraw (service-level method)
+### Withdraw API Request
 
 ```json
 {
-	"account_id": 1,
 	"amount": 125.0
 }
 ```

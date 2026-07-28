@@ -3,3 +3,4 @@ __pycache__/
 atlas-credentials.env
 .venv/
 *.env
+playground-1.mongodb.js

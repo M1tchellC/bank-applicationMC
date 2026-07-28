@@ -52,3 +52,12 @@ class AccountRepository:
         ## Return all accounts in the repository
 
         return self.accounts
+        
+    def get_by_user_and_type(self, user_id, account_type):
+        for account in self.accounts:
+            if (
+                account.user_id == user_id
+                and account.account_type == account_type
+            ):
+                return account
+        return None

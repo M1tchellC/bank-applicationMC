@@ -3,13 +3,19 @@ from pydantic import BaseModel
 
 from repositories.AccountRepository import AccountRepository
 from repositories.TransactionRepository import TransactionRepository
+from repositories.UserRepository import UserRepository
+
 from services.account_service import AccountService
 from services.transaction_service import TransactionService
 
+
+
 app = FastAPI()
 
+user_repository = UserRepository()
+
 account_repository = AccountRepository()
-account_service = AccountService(account_repository)
+account_service = AccountService(account_repository, user_repository)
 
 transaction_repository = TransactionRepository()
 transaction_service = TransactionService(account_repository, transaction_repository)

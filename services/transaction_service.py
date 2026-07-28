@@ -30,17 +30,29 @@ class TransactionService:
 
     def deposit(self, account_id: int, amount: Any):
         """Add money to an account and create a matching deposit transaction."""
+        # Validate all inputs first so business rules run before DB writes.
         validated_account_id = self._validate_account_id(account_id)
         validated_amount = self._validate_amount(amount)
 
+        # Confirm account exists before attempting updates.
         account = self.account_repository.get_by_id(validated_account_id)
         if account is None:
             raise ValueError("Account not found")
 
         current_balance = Decimal(str(account.balance))
         updated_balance = current_balance + validated_amount
+
+        # Persist balance in MongoDB before writing transaction history.
+        was_balance_updated = self.account_repository.update_balance(
+            validated_account_id,
+            float(updated_balance),
+        )
+        if not was_balance_updated:
+            raise ValueError("Failed to update account balance")
+
         account.balance = float(updated_balance)
 
+        # Store an explicit DEPOSIT record for audit/history.
         transaction = Transaction(
             account_id=validated_account_id,
             transaction_type="DEPOSIT",
@@ -63,20 +75,33 @@ class TransactionService:
 
     def withdraw(self, account_id: int, amount: Any):
         """Remove money from an account and create a matching withdrawal transaction."""
+        # Validate account ID and amount format/rules.
         validated_account_id = self._validate_account_id(account_id)
         validated_amount = self._validate_amount(amount)
 
+        # Confirm the account exists.
         account = self.account_repository.get_by_id(validated_account_id)
         if account is None:
             raise ValueError("Account not found")
 
         current_balance = Decimal(str(account.balance))
+        # Stop withdrawal if requested amount is greater than available balance.
         if validated_amount > current_balance:
             raise ValueError("Insufficient balance. Cannot withdraw more than current balance")
 
         updated_balance = current_balance - validated_amount
+
+        # Persist new balance before saving withdrawal record.
+        was_balance_updated = self.account_repository.update_balance(
+            validated_account_id,
+            float(updated_balance),
+        )
+        if not was_balance_updated:
+            raise ValueError("Failed to update account balance")
+
         account.balance = float(updated_balance)
 
+        # Store a WITHDRAW record so the transaction ledger stays complete.
         transaction = Transaction(
             account_id=validated_account_id,
             transaction_type="WITHDRAW",
@@ -99,6 +124,7 @@ class TransactionService:
 
     def get_transactions(self, account_id: int):
         """Return transaction history for one account."""
+        # Validate account first and then fetch history.
         validated_account_id = self._validate_account_id(account_id)
 
         account = self.account_repository.get_by_id(validated_account_id)

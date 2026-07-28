@@ -1,47 +1,55 @@
+import os
+
 from models.user import User
+from repositories.mongo import get_database, get_next_sequence
 
 
 class UserRepository:
     def __init__(self):
-        # Temporary hard-coded data
-        self.users = [
-            User(
-                name="Nate Levi",
-                email="nate.levi@example.com",
-                user_id=1,
-            ),
-            User(
-                name="Naeem Saleem",
-                email="naeem.saleem@example.com",
-                user_id=2,
-            ),
-            User(
-                name="Mitchell Carney",
-                email="mitchell.carney@example.com",
-                user_id=3,
-            ),
-        ]
+        # Connect to MongoDB and select the users collection.
+        database = get_database()
+        collection_name = os.getenv("MONGODB_USERS_COLLECTION", "users")
+        self.users = database[collection_name]
 
     def save(self, user):
-        # Find the largest existing ID, then add one
-        if self.users:
-            user.user_id = max(
-                existing_user.user_id for existing_user in self.users
-            ) + 1
-        else:
-            user.user_id = 1
+        # Assign a new numeric ID when creating a user.
+        if user.user_id is None:
+            user.user_id = get_next_sequence("user_id")
 
-        self.users.append(user)
+        # Store model fields in MongoDB.
+        self.users.insert_one(
+            {
+                "user_id": user.user_id,
+                "name": user.name,
+                "email": user.email,
+                "created_at": user.created_at,
+            }
+        )
         return user
 
     def get_by_id(self, user_id):
-        # Get a user by their ID
-        for user in self.users:
-            if user.user_id == user_id:
-                return user
+        # Find one user by business user_id.
+        document = self.users.find_one({"user_id": user_id})
+        if document is None:
+            return None
 
-        return None
+        # Convert MongoDB document back into User model.
+        return User(
+            user_id=document["user_id"],
+            name=document["name"],
+            email=document["email"],
+            created_at=document.get("created_at"),
+        )
 
     def get_all(self):
-        # Return all users in the repository
-        return self.users
+        # Return users sorted by numeric ID.
+        documents = self.users.find().sort("user_id", 1)
+        return [
+            User(
+                user_id=document["user_id"],
+                name=document["name"],
+                email=document["email"],
+                created_at=document.get("created_at"),
+            )
+            for document in documents
+        ]

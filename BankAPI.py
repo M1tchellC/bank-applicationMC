@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from repositories.AccountRepository import AccountRepository
 from repositories.TransactionRepository import TransactionRepository
 from repositories.UserRepository import UserRepository
+from models.user import User
 
 from services.account_service import AccountService
 from services.transaction_service import TransactionService
@@ -23,6 +24,41 @@ transaction_service = TransactionService(account_repository, transaction_reposit
 
 class AmountRequest(BaseModel):
     amount: float
+
+
+class CreateUserRequest(BaseModel):
+    name: str
+    email: str
+
+
+def _serialize_user(user):
+    return {
+        "userId": user.user_id,
+        "name": user.name,
+        "email": user.email,
+        "createdAt": user.created_at,
+    }
+
+
+@app.get("/users")
+def get_users():
+    users = user_repository.get_all()
+    return [_serialize_user(user) for user in users]
+
+
+@app.get("/users/{user_id}")
+def get_user(user_id: int):
+    user = user_repository.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _serialize_user(user)
+
+
+@app.post("/users")
+def create_user(body: CreateUserRequest):
+    user = User(name=body.name.strip(), email=body.email.strip())
+    saved_user = user_repository.save(user)
+    return _serialize_user(saved_user)
 
 #Account
 

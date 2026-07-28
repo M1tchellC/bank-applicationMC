@@ -1,0 +1,87 @@
+import os
+from functools import lru_cache
+
+from dotenv import load_dotenv
+from pymongo import ASCENDING, MongoClient, ReturnDocument
+
+load_dotenv()
+
+
+@lru_cache(maxsize=1)
+def get_database():
+    # Read MongoDB connection settings from .env.
+    mongodb_uri = os.getenv("MONGODB_URI")
+    db_name = os.getenv("MONGODB_DB_NAME", "bank_application")
+
+    if not mongodb_uri:
+        raise ValueError("MONGODB_URI is not set. Add it to your .env file.")
+
+    # Create one client/database object and reuse it.
+    client = MongoClient(mongodb_uri)
+    database = client[db_name]
+
+    # Make sure required indexes exist before repositories use collections.
+    _ensure_indexes(database)
+    return database
+
+
+def _ensure_indexes(database):
+    # Allow collection names to be configured in .env.
+    accounts_collection_name = os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts")
+    users_collection_name = os.getenv("MONGODB_USERS_COLLECTION", "users")
+    transactions_collection_name = os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions")
+
+    # Unique indexes keep our numeric IDs from duplicating.
+    database[accounts_collection_name].create_index([("account_id", ASCENDING)], unique=True)
+    database[users_collection_name].create_index([("user_id", ASCENDING)], unique=True)
+    database[transactions_collection_name].create_index([("transaction_id", ASCENDING)], unique=True)
+
+    # Query helper index for account transaction history lookups.
+    database[transactions_collection_name].create_index([("account_id", ASCENDING), ("created_at", ASCENDING)])
+
+    # The counters collection uses MongoDB's built-in unique _id index.
+    # Creating another unique index on _id is invalid in MongoDB Atlas.
+
+
+def get_next_sequence(sequence_name: str) -> int:
+    # Keep counters compatible with databases that already contain documents.
+    collection_settings = {
+        "user_id": (os.getenv("MONGODB_USERS_COLLECTION", "users"), "user_id"),
+        "account_id": (os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts"), "account_id"),
+        "transaction_id": (
+            os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions"),
+            "transaction_id",
+        ),
+    }
+    if sequence_name not in collection_settings:
+        raise ValueError(f"Unknown sequence: {sequence_name}")
+
+    database = get_database()
+    collection_name, id_field = collection_settings[sequence_name]
+    highest_document = database[collection_name].find_one(
+        {id_field: {"$type": "number"}},
+        sort=[(id_field, -1)],
+        projection={id_field: 1},
+    )
+    highest_existing_id = int(highest_document[id_field]) if highest_document else 0
+
+    # The update pipeline atomically chooses at least the current maximum, then
+    # increments it. This also repairs missing or stale counters.
+    counter = database.counters.find_one_and_update(
+        {"_id": sequence_name},
+        [
+            {
+                "$set": {
+                    "value": {
+                        "$add": [
+                            {"$max": [{"$ifNull": ["$value", 0]}, highest_existing_id]},
+                            1,
+                        ]
+                    }
+                }
+            }
+        ],
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return int(counter["value"])

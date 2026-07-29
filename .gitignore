@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+atlas-credentials.env
+.venv/
+*.env
+playground-1.mongodb.js

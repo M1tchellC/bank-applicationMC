@@ -1,10 +1,14 @@
 import os
 from functools import lru_cache
-
+from pathlib import Path
 from dotenv import load_dotenv
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 
-load_dotenv()
+
+## load in env mongodb username/password
+load_dotenv(
+    Path(__file__).resolve().parent.parent / "atlas-credentials.env"
+)
 
 
 @lru_cache(maxsize=1)

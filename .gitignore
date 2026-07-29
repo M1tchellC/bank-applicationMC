@@ -4,3 +4,6 @@ atlas-credentials.env
 .venv/
 *.env
 playground-1.mongodb.js
+.agents
+.uv-cache
+tests

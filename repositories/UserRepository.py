@@ -1,15 +1,11 @@
-import os
-
 from models.user import User
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import USERS_COLLECTION, get_database, get_next_sequence
 
 
 class UserRepository:
     def __init__(self):
         # Connect to MongoDB and select the users collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_USERS_COLLECTION", "users")
-        self.users = database[collection_name]
+        self.users = get_database()[USERS_COLLECTION]
 
     def save(self, user):
         # Assign a new numeric ID when creating a user.

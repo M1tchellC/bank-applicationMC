@@ -122,3 +122,5 @@ uvicorn BankAPI:app --reload
 - Keep service classes focused on validation/business logic only
 - This in-memory version is ideal for demos and unit tests
 - For production, replace repository internals with database queries
+
+test

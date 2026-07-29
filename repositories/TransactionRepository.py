@@ -1,20 +1,18 @@
-import os
-
 from models.transaction import Transaction
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import TRANSACTIONS_COLLECTION, get_database, get_next_sequence
 
 
 class TransactionRepository:
-    def __init__(self):
+    def __init__(self, database=None, sequence_generator=get_next_sequence):
         # Connect to MongoDB and select the transactions collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions")
-        self.transactions = database[collection_name]
+        selected_database = get_database() if database is None else database
+        self.transactions = selected_database[TRANSACTIONS_COLLECTION]
+        self.sequence_generator = sequence_generator
 
     def save(self, transaction):
         # Assign numeric ID for new transaction records.
         if transaction.transaction_id is None:
-            transaction.transaction_id = get_next_sequence("transaction_id")
+            transaction.transaction_id = self.sequence_generator("transaction_id")
 
         # Save the transaction as one MongoDB document.
         self.transactions.insert_one(

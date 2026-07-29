@@ -1,20 +1,18 @@
-import os
-
 from models.user import User
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import USERS_COLLECTION, get_database, get_next_sequence
 
 
 class UserRepository:
-    def __init__(self):
+    def __init__(self, database=None, sequence_generator=get_next_sequence):
         # Connect to MongoDB and select the users collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_USERS_COLLECTION", "users")
-        self.users = database[collection_name]
+        selected_database = get_database() if database is None else database
+        self.users = selected_database[USERS_COLLECTION]
+        self.sequence_generator = sequence_generator
 
     def save(self, user):
         # Assign a new numeric ID when creating a user.
         if user.user_id is None:
-            user.user_id = get_next_sequence("user_id")
+            user.user_id = self.sequence_generator("user_id")
 
         # Store model fields in MongoDB.
         self.users.insert_one(

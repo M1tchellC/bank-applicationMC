@@ -1,20 +1,18 @@
-import os
-
 from models.account import Account
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import ACCOUNTS_COLLECTION, get_database, get_next_sequence
 
 
 class AccountRepository:
-    def __init__(self):
+    def __init__(self, database=None, sequence_generator=get_next_sequence):
         # Connect to MongoDB and select the accounts collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts")
-        self.accounts = database[collection_name]
+        selected_database = get_database() if database is None else database
+        self.accounts = selected_database[ACCOUNTS_COLLECTION]
+        self.sequence_generator = sequence_generator
 
     def save(self, account):
         # Assign a new numeric ID when creating a fresh account.
         if account.account_id is None:
-            account.account_id = get_next_sequence("account_id")
+            account.account_id = self.sequence_generator("account_id")
 
         # Store the account model fields as one MongoDB document.
         self.accounts.insert_one(

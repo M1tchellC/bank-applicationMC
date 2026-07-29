@@ -60,6 +60,20 @@ class AccountRepository:
 
         return accounts
 
+    def get_by_user_id(self, user_id):
+        documents = self.accounts.find({"user_id": user_id}).sort("account_id", 1)
+        accounts = []
+        for document in documents:
+            account = Account(
+                account_id=document["account_id"],
+                user_id=document["user_id"],
+                account_type=document["account_type"],
+                balance=document.get("balance", 0.0),
+            )
+            account.created_at = document.get("created_at", account.created_at)
+            accounts.append(account)
+        return accounts
+
     def get_by_user_and_type(self, user_id, account_type):
         # Query MongoDB directly for an account owned by user + type.
         document = self.accounts.find_one(

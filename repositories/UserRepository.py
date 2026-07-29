@@ -22,6 +22,7 @@ class UserRepository:
                 "user_id": user.user_id,
                 "name": user.name,
                 "email": user.email,
+                "password_hash": user.password_hash,
                 "created_at": user.created_at,
             }
         )
@@ -38,6 +39,20 @@ class UserRepository:
             user_id=document["user_id"],
             name=document["name"],
             email=document["email"],
+            password_hash=document.get("password_hash"),
+            created_at=document.get("created_at"),
+        )
+
+    def get_by_email(self, email):
+        document = self.users.find_one({"email": email.strip().lower()})
+        if document is None:
+            return None
+
+        return User(
+            user_id=document["user_id"],
+            name=document["name"],
+            email=document["email"],
+            password_hash=document.get("password_hash"),
             created_at=document.get("created_at"),
         )
 
@@ -49,6 +64,7 @@ class UserRepository:
                 user_id=document["user_id"],
                 name=document["name"],
                 email=document["email"],
+                password_hash=document.get("password_hash"),
                 created_at=document.get("created_at"),
             )
             for document in documents

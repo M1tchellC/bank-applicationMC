@@ -1,10 +1,16 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 
-load_dotenv()
+
+# Load local settings from either supported credentials filename. Existing
+# environment variables take precedence because python-dotenv does not override.
+project_root = Path(__file__).resolve().parent.parent
+load_dotenv(project_root / ".env")
+load_dotenv(project_root / "atlas-credentials.env")
 
 
 @lru_cache(maxsize=1)

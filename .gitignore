@@ -2,3 +2,9 @@ __pycache__/
 *.py[cod]
 .env
 .env.local
+atlas-credentials.env
+.venv/
+*.env
+playground-1.mongodb.js
+.agents
+.uv-cache

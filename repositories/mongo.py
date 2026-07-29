@@ -6,25 +6,32 @@ from dotenv import load_dotenv
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 
 
+DATABASE_NAME = "bank_application"
+ACCOUNTS_COLLECTION = "accounts"
+USERS_COLLECTION = "users"
+TRANSACTIONS_COLLECTION = "transactions"
+COUNTERS_COLLECTION = "counters"
+
+
 # Load local settings from either supported credentials filename. Existing
 # environment variables take precedence because python-dotenv does not override.
 project_root = Path(__file__).resolve().parent.parent
+
 load_dotenv(project_root / ".env")
 load_dotenv(project_root / "atlas-credentials.env")
 
 
 @lru_cache(maxsize=1)
 def get_database():
-    # Read MongoDB connection settings from .env.
+    # The connection URI is the only required MongoDB environment setting.
     mongodb_uri = os.getenv("MONGODB_URI")
-    db_name = os.getenv("MONGODB_DB_NAME", "bank_application")
 
     if not mongodb_uri:
         raise ValueError("MONGODB_URI is not set. Add it to your .env file.")
 
     # Create one client/database object and reuse it.
     client = MongoClient(mongodb_uri)
-    database = client[db_name]
+    database = client[DATABASE_NAME]
 
     # Make sure required indexes exist before repositories use collections.
     _ensure_indexes(database)
@@ -32,18 +39,18 @@ def get_database():
 
 
 def _ensure_indexes(database):
-    # Allow collection names to be configured in .env.
-    accounts_collection_name = os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts")
-    users_collection_name = os.getenv("MONGODB_USERS_COLLECTION", "users")
-    transactions_collection_name = os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions")
-
     # Unique indexes keep our numeric IDs from duplicating.
-    database[accounts_collection_name].create_index([("account_id", ASCENDING)], unique=True)
-    database[users_collection_name].create_index([("user_id", ASCENDING)], unique=True)
-    database[transactions_collection_name].create_index([("transaction_id", ASCENDING)], unique=True)
+    database[ACCOUNTS_COLLECTION].create_index([("account_id", ASCENDING)], unique=True)
+    database[USERS_COLLECTION].create_index([("user_id", ASCENDING)], unique=True)
+    database[TRANSACTIONS_COLLECTION].create_index(
+        [("transaction_id", ASCENDING)],
+        unique=True,
+    )
 
     # Query helper index for account transaction history lookups.
-    database[transactions_collection_name].create_index([("account_id", ASCENDING), ("created_at", ASCENDING)])
+    database[TRANSACTIONS_COLLECTION].create_index(
+        [("account_id", ASCENDING), ("created_at", ASCENDING)]
+    )
 
     # The counters collection uses MongoDB's built-in unique _id index.
     # Creating another unique index on _id is invalid in MongoDB Atlas.
@@ -52,12 +59,9 @@ def _ensure_indexes(database):
 def get_next_sequence(sequence_name: str) -> int:
     # Keep counters compatible with databases that already contain documents.
     collection_settings = {
-        "user_id": (os.getenv("MONGODB_USERS_COLLECTION", "users"), "user_id"),
-        "account_id": (os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts"), "account_id"),
-        "transaction_id": (
-            os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions"),
-            "transaction_id",
-        ),
+        "user_id": (USERS_COLLECTION, "user_id"),
+        "account_id": (ACCOUNTS_COLLECTION, "account_id"),
+        "transaction_id": (TRANSACTIONS_COLLECTION, "transaction_id"),
     }
     if sequence_name not in collection_settings:
         raise ValueError(f"Unknown sequence: {sequence_name}")
@@ -73,7 +77,7 @@ def get_next_sequence(sequence_name: str) -> int:
 
     # The update pipeline atomically chooses at least the current maximum, then
     # increments it. This also repairs missing or stale counters.
-    counter = database.counters.find_one_and_update(
+    counter = database[COUNTERS_COLLECTION].find_one_and_update(
         {"_id": sequence_name},
         [
             {

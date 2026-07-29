@@ -1,15 +1,11 @@
-import os
-
 from models.account import Account
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import ACCOUNTS_COLLECTION, get_database, get_next_sequence
 
 
 class AccountRepository:
     def __init__(self):
         # Connect to MongoDB and select the accounts collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts")
-        self.accounts = database[collection_name]
+        self.accounts = get_database()[ACCOUNTS_COLLECTION]
 
     def save(self, account):
         # Assign a new numeric ID when creating a fresh account.

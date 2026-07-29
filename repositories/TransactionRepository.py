@@ -1,15 +1,11 @@
-import os
-
 from models.transaction import Transaction
-from repositories.mongo import get_database, get_next_sequence
+from repositories.mongo import TRANSACTIONS_COLLECTION, get_database, get_next_sequence
 
 
 class TransactionRepository:
     def __init__(self):
         # Connect to MongoDB and select the transactions collection.
-        database = get_database()
-        collection_name = os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions")
-        self.transactions = database[collection_name]
+        self.transactions = get_database()[TRANSACTIONS_COLLECTION]
 
     def save(self, transaction):
         # Assign numeric ID for new transaction records.

@@ -28,22 +28,16 @@ class TransactionService:
         # Keep money values to 2 decimal places.
         return validated_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    def _get_owned_account(self, account_id: int, user_id: int):
-        account = self.account_repository.get_by_id(account_id)
-        if account is None:
-            raise ValueError("Account not found")
-        if account.user_id != user_id:
-            raise PermissionError("You do not have access to this account")
-        return account
-
-    def deposit(self, account_id: int, amount: Any, user_id: int):
+    def deposit(self, account_id: int, amount: Any):
         """Add money to an account and create a matching deposit transaction."""
         # Validate all inputs first so business rules run before DB writes.
         validated_account_id = self._validate_account_id(account_id)
         validated_amount = self._validate_amount(amount)
 
         # Confirm account exists before attempting updates.
-        account = self._get_owned_account(validated_account_id, user_id)
+        account = self.account_repository.get_by_id(validated_account_id)
+        if account is None:
+            raise ValueError("Account not found")
 
         current_balance = Decimal(str(account.balance))
         updated_balance = current_balance + validated_amount
@@ -79,14 +73,16 @@ class TransactionService:
             },
         }
 
-    def withdraw(self, account_id: int, amount: Any, user_id: int):
+    def withdraw(self, account_id: int, amount: Any):
         """Remove money from an account and create a matching withdrawal transaction."""
         # Validate account ID and amount format/rules.
         validated_account_id = self._validate_account_id(account_id)
         validated_amount = self._validate_amount(amount)
 
         # Confirm the account exists.
-        account = self._get_owned_account(validated_account_id, user_id)
+        account = self.account_repository.get_by_id(validated_account_id)
+        if account is None:
+            raise ValueError("Account not found")
 
         current_balance = Decimal(str(account.balance))
         # Stop withdrawal if requested amount is greater than available balance.
@@ -126,12 +122,14 @@ class TransactionService:
             },
         }
 
-    def get_transactions(self, account_id: int, user_id: int):
+    def get_transactions(self, account_id: int):
         """Return transaction history for one account."""
         # Validate account first and then fetch history.
         validated_account_id = self._validate_account_id(account_id)
 
-        self._get_owned_account(validated_account_id, user_id)
+        account = self.account_repository.get_by_id(validated_account_id)
+        if account is None:
+            raise ValueError("Account not found")
 
         transactions = self.transaction_repository.get_by_account_id(validated_account_id)
         return [

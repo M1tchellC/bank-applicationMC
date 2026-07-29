@@ -54,6 +54,9 @@ main.py
 - Withdraw amount must be a valid positive number
 - Cannot withdraw more than current account balance
 - Every successful deposit and withdraw creates a transaction record
+- Passwords are stored only as Argon2 hashes
+- Account and transaction routes require a valid JWT access token
+- An authenticated user can access only their own accounts
 
 ## Quick Start
 
@@ -80,6 +83,10 @@ Set the following values in `.env`:
 
 - MONGODB_URI (Atlas connection string)
 - MONGODB_DB_NAME (example: bank_application)
+- JWT_SECRET_KEY (a random value of at least 32 characters)
+
+For local development, the API can instead read the secret from an ignored
+`.jwt-secret` file generated with `openssl rand -hex -out .jwt-secret 32`.
 
 Optional values:
 
@@ -112,6 +119,22 @@ or start the API and use its interactive documentation at:
 http://127.0.0.1:8000/docs
 ```
 
+## Test JWT authentication without a frontend
+
+Start the API and open `http://127.0.0.1:8000/docs`.
+
+1. Use `POST /auth/register` with a name, email, and password of at least 12 characters.
+2. Click the **Authorize** button at the top of Swagger.
+3. Enter the registered email in the `username` field and the password in the `password` field. Leave client ID and client secret empty.
+4. Swagger stores the returned bearer token and sends it with protected requests.
+5. Use `GET /auth/me` to confirm the authenticated identity.
+6. Create an account with `POST /accounts`; the owner comes from the JWT.
+7. Test deposits, withdrawals, and transaction history with the returned account ID.
+8. Click **Authorize**, then **Logout**, and confirm that protected routes return `401`.
+
+Existing database users created before authentication do not have password hashes and
+cannot log in. Register a new test user for the JWT flow.
+
 ## API Endpoints
 
 ### Accounts
@@ -120,11 +143,11 @@ http://127.0.0.1:8000/docs
 - GET /accounts/{account_id}
 - POST /accounts
 
-### Users
+### Authentication
 
-- GET /users
-- GET /users/{user_id}
-- POST /users
+- POST /auth/register
+- POST /auth/token
+- GET /auth/me
 
 ### Transactions
 

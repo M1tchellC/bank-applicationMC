@@ -5,6 +5,7 @@ __pycache__/
 atlas-credentials.env
 .venv/
 *.env
+.jwt-secret
 playground-1.mongodb.js
 .agents
 .uv-cache

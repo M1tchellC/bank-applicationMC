@@ -3,14 +3,16 @@ from repositories.mongo import ACCOUNTS_COLLECTION, get_database, get_next_seque
 
 
 class AccountRepository:
-    def __init__(self):
+    def __init__(self, database=None, sequence_generator=get_next_sequence):
         # Connect to MongoDB and select the accounts collection.
-        self.accounts = get_database()[ACCOUNTS_COLLECTION]
+        selected_database = get_database() if database is None else database
+        self.accounts = selected_database[ACCOUNTS_COLLECTION]
+        self.sequence_generator = sequence_generator
 
     def save(self, account):
         # Assign a new numeric ID when creating a fresh account.
         if account.account_id is None:
-            account.account_id = get_next_sequence("account_id")
+            account.account_id = self.sequence_generator("account_id")
 
         # Store the account model fields as one MongoDB document.
         self.accounts.insert_one(
@@ -54,6 +56,20 @@ class AccountRepository:
             account.created_at = document.get("created_at", account.created_at)
             accounts.append(account)
 
+        return accounts
+
+    def get_by_user_id(self, user_id):
+        documents = self.accounts.find({"user_id": user_id}).sort("account_id", 1)
+        accounts = []
+        for document in documents:
+            account = Account(
+                account_id=document["account_id"],
+                user_id=document["user_id"],
+                account_type=document["account_type"],
+                balance=document.get("balance", 0.0),
+            )
+            account.created_at = document.get("created_at", account.created_at)
+            accounts.append(account)
         return accounts
 
     def get_by_user_and_type(self, user_id, account_type):

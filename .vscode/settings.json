@@ -1,0 +1,4 @@
+{
+  "mdb.mcp.readOnly": true,
+  "mdb.mcp.server": "autoStartEnabled"
+}

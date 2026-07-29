@@ -1,63 +1,89 @@
+import os
+
 from models.account import Account
+from repositories.mongo import get_database, get_next_sequence
 
 
 class AccountRepository:
     def __init__(self):
-        # Temporary hard-coded data
-        self.accounts = [
-            Account(
-                user_id=1,
-                account_type="CHECKING",
-                balance=1000.00,
-                account_id=1,
-            ),
-            Account(
-                user_id=2,
-                account_type="SAVINGS",
-                balance=500.00,
-                account_id=2,
-            ),
-            Account(
-                user_id=3,
-                account_type="CHECKING",
-                balance=750.00,
-                account_id=3,
-            ),
-        ]
+        # Connect to MongoDB and select the accounts collection.
+        database = get_database()
+        collection_name = os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts")
+        self.accounts = database[collection_name]
 
     def save(self, account):
-        # Find the largest existing ID, then add one
-        if self.accounts:
-            account.account_id = max(
-                existing_account.account_id
-                for existing_account in self.accounts
-            ) + 1
-        else:
-            account.account_id = 1
+        # Assign a new numeric ID when creating a fresh account.
+        if account.account_id is None:
+            account.account_id = get_next_sequence("account_id")
 
-        self.accounts.append(account)
+        # Store the account model fields as one MongoDB document.
+        self.accounts.insert_one(
+            {
+                "account_id": account.account_id,
+                "user_id": account.user_id,
+                "account_type": account.account_type,
+                "balance": account.balance,
+                "created_at": account.created_at,
+            }
+        )
         return account
 
     def get_by_id(self, account_id):
-        ## Get an account by its ID
+        # Find account by business ID (not Mongo _id).
+        document = self.accounts.find_one({"account_id": account_id})
+        if document is None:
+            return None
 
-        for account in self.accounts:
-            if account.account_id == account_id:
-                return account
-
-        return None
+        # Map MongoDB document back into our Account model.
+        account = Account(
+            account_id=document["account_id"],
+            user_id=document["user_id"],
+            account_type=document["account_type"],
+            balance=document.get("balance", 0.0),
+        )
+        account.created_at = document.get("created_at", account.created_at)
+        return account
 
     def get_all(self):
+        # Return accounts in ID order so responses stay predictable.
+        documents = self.accounts.find().sort("account_id", 1)
+        accounts = []
+        for document in documents:
+            account = Account(
+                account_id=document["account_id"],
+                user_id=document["user_id"],
+                account_type=document["account_type"],
+                balance=document.get("balance", 0.0),
+            )
+            account.created_at = document.get("created_at", account.created_at)
+            accounts.append(account)
 
-        ## Return all accounts in the repository
+        return accounts
 
-        return self.accounts
-        
     def get_by_user_and_type(self, user_id, account_type):
-        for account in self.accounts:
-            if (
-                account.user_id == user_id
-                and account.account_type == account_type
-            ):
-                return account
-        return None
+        # Query MongoDB directly for an account owned by user + type.
+        document = self.accounts.find_one(
+            {
+                "user_id": user_id,
+                "account_type": account_type,
+            }
+        )
+        if document is None:
+            return None
+
+        account = Account(
+            account_id=document["account_id"],
+            user_id=document["user_id"],
+            account_type=document["account_type"],
+            balance=document.get("balance", 0.0),
+        )
+        account.created_at = document.get("created_at", account.created_at)
+        return account
+
+    def update_balance(self, account_id, balance):
+        # Update only the balance field for one account.
+        result = self.accounts.update_one(
+            {"account_id": account_id},
+            {"$set": {"balance": balance}},
+        )
+        return result.matched_count == 1

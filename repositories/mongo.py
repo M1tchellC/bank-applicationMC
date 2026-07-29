@@ -1,14 +1,16 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+
 from dotenv import load_dotenv
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 
 
-## load in env mongodb username/password
-load_dotenv(
-    Path(__file__).resolve().parent.parent / "atlas-credentials.env"
-)
+# Load local settings from either supported credentials filename. Existing
+# environment variables take precedence because python-dotenv does not override.
+project_root = Path(__file__).resolve().parent.parent
+load_dotenv(project_root / ".env")
+load_dotenv(project_root / "atlas-credentials.env")
 
 
 @lru_cache(maxsize=1)
@@ -43,15 +45,48 @@ def _ensure_indexes(database):
     # Query helper index for account transaction history lookups.
     database[transactions_collection_name].create_index([("account_id", ASCENDING), ("created_at", ASCENDING)])
 
-    # Counter collection is used for auto-increment style numeric IDs.
-    database.counters.create_index([("_id", ASCENDING)], unique=True)
+    # The counters collection uses MongoDB's built-in unique _id index.
+    # Creating another unique index on _id is invalid in MongoDB Atlas.
 
 
 def get_next_sequence(sequence_name: str) -> int:
-    # Atomically increment and return the next numeric ID.
-    counter = get_database().counters.find_one_and_update(
+    # Keep counters compatible with databases that already contain documents.
+    collection_settings = {
+        "user_id": (os.getenv("MONGODB_USERS_COLLECTION", "users"), "user_id"),
+        "account_id": (os.getenv("MONGODB_ACCOUNTS_COLLECTION", "accounts"), "account_id"),
+        "transaction_id": (
+            os.getenv("MONGODB_TRANSACTIONS_COLLECTION", "transactions"),
+            "transaction_id",
+        ),
+    }
+    if sequence_name not in collection_settings:
+        raise ValueError(f"Unknown sequence: {sequence_name}")
+
+    database = get_database()
+    collection_name, id_field = collection_settings[sequence_name]
+    highest_document = database[collection_name].find_one(
+        {id_field: {"$type": "number"}},
+        sort=[(id_field, -1)],
+        projection={id_field: 1},
+    )
+    highest_existing_id = int(highest_document[id_field]) if highest_document else 0
+
+    # The update pipeline atomically chooses at least the current maximum, then
+    # increments it. This also repairs missing or stale counters.
+    counter = database.counters.find_one_and_update(
         {"_id": sequence_name},
-        {"$inc": {"value": 1}},
+        [
+            {
+                "$set": {
+                    "value": {
+                        "$add": [
+                            {"$max": [{"$ifNull": ["$value", 0]}, highest_existing_id]},
+                            1,
+                        ]
+                    }
+                }
+            }
+        ],
         upsert=True,
         return_document=ReturnDocument.AFTER,
     )

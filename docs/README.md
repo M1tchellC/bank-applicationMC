@@ -12,39 +12,40 @@ A simple banking system for learning backend architecture and service-layer busi
 
 ## Current Implementation
 
-This repository currently uses **hard-coded in-memory repositories** (no persistent DB writes in the main flow).
+This repository now uses MongoDB repositories for persistence.
 
-- `AccountRepository` manages account data in memory
-- `UserRepository` manages user data in memory
-- `TransactionRepository` manages transaction data in memory
-- `TransactionService` contains deposit/withdraw validation and business logic
+- AccountRepository reads and writes account data in MongoDB
+- UserRepository reads and writes user data in MongoDB
+- TransactionRepository reads and writes transaction data in MongoDB
+- TransactionService contains deposit and withdraw validation and business logic
 
 ## Project Structure
 
 ```
 models/
-	account.py
-	user.py
-	transaction.py
+    account.py
+    user.py
+    transaction.py
 
 repositories/
-	AccountRepository.py
-	UserRepository.py
-	TransactionRepository.py
+    AccountRepository.py
+    UserRepository.py
+    TransactionRepository.py
+    mongo.py
 
 services/
-	account_service.py
-	transaction_service.py
+    account_service.py
+    transaction_service.py
 
 BankAPI.py
 main.py
 ```
 
-## Architecture (MVC-style layering)
+## Architecture
 
-1. Controller/API layer receives request
+1. API layer receives request
 2. Service layer applies business rules
-3. Repository layer stores/retrieves data
+3. Repository layer stores and retrieves data
 4. Model layer defines data objects
 
 ## Business Rules
@@ -52,7 +53,7 @@ main.py
 - Deposit amount must be a valid positive number
 - Withdraw amount must be a valid positive number
 - Cannot withdraw more than current account balance
-- Every successful deposit/withdraw creates a transaction record
+- Every successful deposit and withdraw creates a transaction record
 
 ## Quick Start
 
@@ -66,61 +67,73 @@ source .venv/bin/activate
 ### 2. Install dependencies
 
 ```bash
-pip install fastapi uvicorn
+pip install -r requirements.txt
 ```
 
-### 3. Run the API
+### 3. Configure MongoDB
+
+```bash
+cp .env.example .env
+```
+
+Set the following values in `.env`:
+
+- MONGODB_URI (Atlas connection string)
+- MONGODB_DB_NAME (example: bank_application)
+
+Optional values:
+
+- MONGODB_USERS_COLLECTION
+- MONGODB_ACCOUNTS_COLLECTION
+- MONGODB_TRANSACTIONS_COLLECTION
+
+### 4. Run the API
 
 ```bash
 uvicorn BankAPI:app --reload
+```
+
+### 5. Test with real MongoDB entries
+
+After configuring `.env`, run the smoke test from the project root:
+
+```bash
+python scripts/mongodb_smoke_test.py
+```
+
+The test connects to the configured database and leaves behind one uniquely named
+sample user, one checking account, a deposit, and a withdrawal. It verifies that
+the final balance is `100.25` and that both transaction records can be read back.
+
+You can inspect the entries in MongoDB Atlas under **Database > Browse Collections**,
+or start the API and use its interactive documentation at:
+
+```text
+http://127.0.0.1:8000/docs
 ```
 
 ## API Endpoints
 
 ### Accounts
 
-- `GET /accounts` - Get all accounts
-- `GET /accounts/{account_id}` - Get account by ID
-- `POST /accounts` - Create account
+- GET /accounts
+- GET /accounts/{account_id}
+- POST /accounts
+
+### Users
+
+- GET /users
+- GET /users/{user_id}
+- POST /users
 
 ### Transactions
 
-- `POST /accounts/{account_id}/deposit` - Deposit money
-- `POST /accounts/{account_id}/withdraw` - Withdraw money
-- `GET /accounts/{account_id}/transactions` - Get transaction history for one account
-
-## Example Request Payloads
-
-### Create Account
-
-```json
-{
-	"user_id": 1,
-	"account_type": "SAVINGS"
-}
-```
-
-### Deposit API Request
-
-```json
-{
-	"amount": 250.0
-}
-```
-
-### Withdraw API Request
-
-```json
-{
-	"amount": 125.0
-}
-```
+- POST /accounts/{account_id}/deposit
+- POST /accounts/{account_id}/withdraw
+- GET /accounts/{account_id}/transactions
 
 ## Team Notes
 
 - Keep repository classes focused on data access only
-- Keep service classes focused on validation/business logic only
-- This in-memory version is ideal for demos and unit tests
-- For production, replace repository internals with database queries
-
-test
+- Keep service classes focused on validation and business logic only
+- Keep credentials in environment variables and do not commit `.env`

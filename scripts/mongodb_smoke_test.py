@@ -38,8 +38,8 @@ def main():
         )
     )
     account = account_service.create_account(user.user_id, "CHECKING")
-    transaction_service.deposit(account.account_id, 125.50, user.user_id)
-    transaction_service.withdraw(account.account_id, 25.25, user.user_id)
+    transaction_service.deposit(account.account_id, 125.50)
+    transaction_service.withdraw(account.account_id, 25.25)
 
     saved_user = user_repository.get_by_id(user.user_id)
     saved_account = account_repository.get_by_id(account.account_id)

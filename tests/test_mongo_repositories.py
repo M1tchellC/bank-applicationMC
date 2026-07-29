@@ -27,7 +27,6 @@ class UserRepositoryTests(unittest.TestCase):
                 "user_id": 4,
                 "name": "Ada Lovelace",
                 "email": "ada@example.com",
-                "password_hash": None,
                 "created_at": user.created_at,
             }
         )

@@ -42,14 +42,6 @@ def _ensure_indexes(database):
     # Unique indexes keep our numeric IDs from duplicating.
     database[ACCOUNTS_COLLECTION].create_index([("account_id", ASCENDING)], unique=True)
     database[USERS_COLLECTION].create_index([("user_id", ASCENDING)], unique=True)
-    # Legacy test users may contain duplicate emails. Enforce uniqueness for
-    # authenticated users without deleting or rewriting those older documents.
-    database[USERS_COLLECTION].create_index(
-        [("email", ASCENDING)],
-        name="authenticated_email_unique",
-        unique=True,
-        partialFilterExpression={"password_hash": {"$type": "string"}},
-    )
     database[TRANSACTIONS_COLLECTION].create_index(
         [("transaction_id", ASCENDING)],
         unique=True,

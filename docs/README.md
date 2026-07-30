@@ -4,6 +4,7 @@ A simple banking system for learning backend architecture and service-layer busi
 
 ## Features
 
+- Register and log in
 - Create an account
 - View account details
 - Deposit money
@@ -90,7 +91,7 @@ Optional values:
 ### 4. Run the API
 
 ```bash
-uvicorn BankAPI:app --reload
+py -m uvicorn BankAPI:app --reload
 ```
 
 ### 5. Test with real MongoDB entries
@@ -113,6 +114,12 @@ http://127.0.0.1:8000/docs
 ```
 
 ## API Endpoints
+
+### Auth
+
+- POST /auth/register
+- POST /auth/token
+- GET /auth/me
 
 ### Accounts
 

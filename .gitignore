@@ -8,3 +8,9 @@ atlas-credentials.env
 playground-1.mongodb.js
 .agents
 .uv-cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage/
+htmlcov/
+coverage/

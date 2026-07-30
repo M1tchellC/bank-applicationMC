@@ -1,7 +1,8 @@
 export const paths = {
   login: '/',
-  createAccount: '/create-account',
+  register: '/register',
   account: '/account',
+  createAccount: '/account/new',
   deposit: '/account/deposit',
   withdraw: '/account/withdraw',
   transactions: '/account/transactions',

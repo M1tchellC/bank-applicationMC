@@ -32,24 +32,27 @@ export type MoneyAction = keyof typeof moneyFormCopy
 
 interface MoneyFormProps {
   action: MoneyAction
+  balance?: string
+  busy?: boolean
   onSubmit: FormEventHandler<HTMLFormElement>
 }
 
-function MoneyForm({ action, onSubmit }: MoneyFormProps) {
+function MoneyForm({ action, balance, busy, onSubmit }: MoneyFormProps) {
   const copy = moneyFormCopy[action]
   const amountId = `${action}-amount`
 
   return (
-    <Card>
+    <Card className="surface-card border-0 p-2">
       <CardHeader>
         <CardTitle>
-          <h1>{copy.title}</h1>
+          <h1 className="font-heading text-3xl">{copy.title}</h1>
         </CardTitle>
         <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
 
       <form className="flex flex-col gap-6" onSubmit={onSubmit}>
         <CardContent>
+          {balance ? <div className="mb-6 rounded-2xl bg-emerald-50 p-4"><p className="text-xs font-medium uppercase tracking-wider text-emerald-800">Available now</p><p className="mt-1 font-heading text-2xl font-semibold">{balance}</p></div> : null}
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor={amountId}>{copy.fieldLabel}</FieldLabel>
@@ -68,8 +71,8 @@ function MoneyForm({ action, onSubmit }: MoneyFormProps) {
         </CardContent>
 
         <CardFooter className="flex-col gap-3">
-          <Button className="w-full" size="lg" type="submit">
-            {copy.submitLabel}
+          <Button className="w-full" disabled={busy} size="lg" type="submit">
+            {busy ? 'Processing…' : copy.submitLabel}
           </Button>
           <Button
             className="w-full"

@@ -19,12 +19,12 @@ interface LoginFormProps {
 
 function LoginForm({ onSubmit }: LoginFormProps) {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="surface-card border-0 p-2">
+      <CardHeader className="items-start text-left">
         <CardTitle>
-          <h1>Welcome back</h1>
+          <h1 className="font-heading text-3xl">Welcome back</h1>
         </CardTitle>
-        <CardDescription>Log in to view your bank account.</CardDescription>
+        <CardDescription className="pl-1">Log in to view your accounts</CardDescription>
       </CardHeader>
 
       <form className="flex flex-col gap-6" onSubmit={onSubmit}>
@@ -56,16 +56,16 @@ function LoginForm({ onSubmit }: LoginFormProps) {
 
         <CardFooter className="flex-col gap-3">
           <Button className="w-full" size="lg" type="submit">
-            Log in
+            Sign in securely
           </Button>
           <Button
             className="w-full"
             nativeButton={false}
-            render={<Link to={paths.createAccount} />}
+            render={<Link to={paths.register} />}
             size="lg"
             variant="outline"
           >
-            Create an account
+            Create profile
           </Button>
         </CardFooter>
       </form>

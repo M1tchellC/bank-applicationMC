@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router'
+import { Navigate, Outlet, Route, Routes } from 'react-router'
+import { useAuth } from '@/context/AuthContext'
 import AccountLayout from '@/layouts/AccountLayout'
 import AccountDetailsPage from '@/pages/AccountDetailsPage'
 import CreateAccountPage from '@/pages/CreateAccountPage'
@@ -7,22 +8,32 @@ import LoginPage from '@/pages/LoginPage'
 import TransactionHistoryPage from '@/pages/TransactionHistoryPage'
 import WithdrawPage from '@/pages/WithdrawPage'
 import { paths } from '@/routes/paths'
+import { Toaster } from '@/components/ui/sonner'
+
+function ProtectedRoute() {
+  const { token, loading } = useAuth()
+  if (loading) return <div className="grid min-h-screen place-items-center"><div className="brand-loader" aria-label="Loading" /></div>
+  return token ? <Outlet /> : <Navigate to={paths.login} replace />
+}
 
 function App() {
   return (
-    <Routes>
+    <><Routes>
       <Route path={paths.login} element={<LoginPage />} />
-      <Route path={paths.createAccount} element={<CreateAccountPage />} />
+      <Route path={paths.register} element={<CreateAccountPage />} />
 
-      <Route path={paths.account} element={<AccountLayout />}>
-        <Route index element={<AccountDetailsPage />} />
-        <Route path="deposit" element={<DepositPage />} />
-        <Route path="withdraw" element={<WithdrawPage />} />
-        <Route path="transactions" element={<TransactionHistoryPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path={paths.account} element={<AccountLayout />}>
+          <Route index element={<AccountDetailsPage />} />
+          <Route path="new" element={<CreateAccountPage />} />
+          <Route path="deposit" element={<DepositPage />} />
+          <Route path="withdraw" element={<WithdrawPage />} />
+          <Route path="transactions" element={<TransactionHistoryPage />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to={paths.login} replace />} />
-    </Routes>
+    </Routes><Toaster richColors position="top-right" /></>
   )
 }
 

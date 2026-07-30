@@ -57,4 +57,11 @@ class AccountService:
 
         return self.account_repository.get_all()
 
-    
+    def get_accounts_for_user(self, user_id):
+        return self.account_repository.get_by_user_id(user_id)
+
+    def get_account_for_user(self, account_id, user_id):
+        account = self.get_account(account_id)
+        if account.user_id != user_id:
+            raise PermissionError("You do not have access to this account")
+        return account

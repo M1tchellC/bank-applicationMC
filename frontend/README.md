@@ -4,17 +4,17 @@ Dinero is the React client for the bank application. It includes secure registra
 
 ## Backend requirement
 
-Run this frontend with the repository's `agent/rest-api-jwt-auth` backend. The unauthenticated API on `main` does not provide the `/auth/*` endpoints used by this client.
+Run this frontend with the repository's FastAPI backend. The client uses the
+JWT endpoints exposed by `BankAPI.py`, including `/auth/register`,
+`/auth/token`, and `/auth/me`.
 
 ## Run locally
 
 1. Start MongoDB/Atlas through the backend environment configuration.
-2. Start the JWT API from the repository root:
+2. Start the API from the repository root:
 
    ```bash
-   git switch agent/rest-api-jwt-auth
-   source .venv/bin/activate
-   uvicorn BankAPI:app --reload
+   py -m uvicorn BankAPI:app --reload
    ```
 
 3. In another terminal, start the frontend branch:

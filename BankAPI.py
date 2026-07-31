@@ -12,6 +12,7 @@ from repositories.UserRepository import UserRepository
 from services.account_service import AccountService
 from services.auth_service import AuthenticationError, AuthService
 from services.transaction_service import TransactionService
+from magnum import Magnum
 
 
 app = FastAPI(title="Bank Application API")
@@ -163,3 +164,4 @@ def get_transactions(account_id: int, current_user=Depends(get_current_user)):
     except PermissionError as error:
         raise HTTPException(status_code=403, detail=str(error))
 
+handler = Magnum(app)
